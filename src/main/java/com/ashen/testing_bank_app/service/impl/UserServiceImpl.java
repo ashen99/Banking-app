@@ -2,6 +2,7 @@ package com.ashen.testing_bank_app.service.impl;
 
 import com.ashen.testing_bank_app.dto.AccountInfo;
 import com.ashen.testing_bank_app.dto.BankResponse;
+import com.ashen.testing_bank_app.dto.EmailDetails;
 import com.ashen.testing_bank_app.dto.UserRequest;
 import com.ashen.testing_bank_app.entity.User;
 import com.ashen.testing_bank_app.repository.UserRepository;
@@ -16,6 +17,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     UserRepository userRepository;
+
+    @Autowired
+    EmailService emailService;
 
     @Override
     public BankResponse createAccount(UserRequest userRequest) {
@@ -47,6 +51,15 @@ public class UserServiceImpl implements UserService {
                 .build();
 
         User savedUser = userRepository.save(newUser);
+        // Send email Alert
+        EmailDetails emailDetails = EmailDetails.builder()
+                .recipients(userRequest.getEmail())
+                .subject("ACCOUNT CREATION")
+                .messageBody("Congratulations!!! your account has been created!.\n Your account Details: \n"+
+                "Account Name : " + savedUser.getFirstName() + " " + savedUser.getLastName() + " " + savedUser.getOtherName()  + "\nAccount Number: " + savedUser.getAccountNumber())
+                .build();
+        emailService.sendEmailAlert(emailDetails);
+
         return BankResponse.builder()
                 .responseCode(AccountUtils.ACCOUNT_CREATION_SUCCESS)
                 .responseMessage(AccountUtils.ACCOUNT_CREATION_SUCCESS_MESSAGE)
