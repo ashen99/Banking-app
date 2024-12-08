@@ -32,6 +32,7 @@ public class User {
     private String stateOfOrigin;
     private String accountNumber;
     private BigDecimal accountBalance;
+    @Column(name = "email", nullable = false, unique = true, length = 320)
     private String email;
     private String phoneNumber;
     private String alternativePhoneNumber;
