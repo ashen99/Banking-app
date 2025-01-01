@@ -1,10 +1,17 @@
 package com.ashen.testing_bank_app.service.impl;
 
+import com.ashen.testing_bank_app.config.JwtTokenProvider;
 import com.ashen.testing_bank_app.dto.*;
+import com.ashen.testing_bank_app.entity.Role;
 import com.ashen.testing_bank_app.entity.User;
 import com.ashen.testing_bank_app.repository.UserRepository;
 import com.ashen.testing_bank_app.utils.AccountUtils;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -21,6 +28,15 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     TransactionService transactionService;
+
+    @Autowired
+    PasswordEncoder passwordEncoder;
+
+    @Autowired
+    AuthenticationManager authenticationManager;
+
+    @Autowired
+    JwtTokenProvider jwtTokenProvider;
 
     @Override
     public BankResponse createAccount(UserRequest userRequest) {
@@ -44,6 +60,8 @@ public class UserServiceImpl implements UserService {
                 .address(userRequest.getAddress())
                 .gender(userRequest.getGender())
                 .stateOfOrigin(userRequest.getStateOfOrigin())
+                .password(passwordEncoder.encode(userRequest.getPassword()))
+                .role(Role.ROLE_ADMIN)
                 .phoneNumber(userRequest.getPhoneNumber())
                 .alternativePhoneNumber(userRequest.getAlternativePhoneNumber())
                 .accountNumber(AccountUtils.generateAccountNumber())
@@ -250,6 +268,25 @@ public class UserServiceImpl implements UserService {
         return BankResponse.builder()
                 .responseCode(AccountUtils.TRANSFER_SUCCESSFUL_CODE)
                 .responseMessage(AccountUtils.TRANSFER_SUCCESSFUL_MESSAGE)
+                .build();
+    }
+
+    @Override
+    public BankResponse login(LoginDto loginDto) {
+        Authentication authentication = null;
+        authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(loginDto.getEmail(), loginDto.getPassword())
+        );
+        EmailDetails loginAlert = EmailDetails.builder()
+                .subject("You 're logged in!")
+                .recipients(loginDto.getEmail())
+                .messageBody("You loggied into your account")
+                .build();
+
+        emailService.sendEmailAlert(loginAlert);
+        return BankResponse.builder()
+                .responseCode("LOGIN_SUCCESS")
+                .responseMessage(jwtTokenProvider.generateToken(authentication))
                 .build();
     }
 }
