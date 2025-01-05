@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -283,10 +284,17 @@ public class UserServiceImpl implements UserService {
                 .messageBody("You loggied into your account")
                 .build();
 
+        User user = userRepository.findByEmail(loginDto.getEmail()).orElseThrow(() -> new UsernameNotFoundException(loginDto.getEmail()+"not found"));
+
         emailService.sendEmailAlert(loginAlert);
         return BankResponse.builder()
                 .responseCode("LOGIN_SUCCESS")
                 .responseMessage(jwtTokenProvider.generateToken(authentication))
+                .accountInfo(AccountInfo.builder()
+                        .accountNumber(user.getAccountNumber())
+                        .accountName(user.getFirstName() + " " + user.getLastName())
+                        .accountBalance(user.getAccountBalance())
+                        .build())
                 .build();
     }
 }
